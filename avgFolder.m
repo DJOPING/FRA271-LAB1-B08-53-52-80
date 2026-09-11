@@ -18,7 +18,7 @@ function S = avgFolder(folder, varargin)
     p = inputParser;
     p.addParameter('VQ',      []);                 % mV หรือ path โฟลเดอร์
     p.addParameter('Sens',    [], @isnumeric);     % mV/mT
-    p.addParameter('Variant', '',  @(x)ischar(x)||isstring(x));
+    p.addParameter('Variant', 'A2', @(x)ischar(x)||isstring(x));   % DRV5055A2 (ยืนยันจาก part marking 55A2)
     p.addParameter('Vref',    3.3, @isnumeric);    % V
     p.addParameter('TA',      25,  @isnumeric);    % อุณหภูมิแวดล้อม (C)
     p.addParameter('STC',     0.12,@isnumeric);    % %/C จาก datasheet (typ)
@@ -70,10 +70,20 @@ function S = avgFolder(folder, varargin)
 
     % ---------- หาค่า VQ ----------
     VQ = o.VQ;
+    S.VQ_source = 'ระบุเป็นตัวเลขโดยตรง';
+    if isempty(VQ)
+        sib = fullfile(fileparts(folder), 'VQ');      % มองหาโฟลเดอร์ VQ ข้างๆ
+        if isfolder(sib) && ~strcmpi(folder, sib)
+            VQ = sib;
+        end
+    end
     if ischar(VQ) || isstring(VQ)
-        Sq = avgFolder(char(VQ), 'Vref', o.Vref, 'Quiet', true);
+        vqPath = char(VQ);
+        Sq = avgFolder(vqPath, 'Vref', o.Vref, 'Quiet', true);
         VQ = Sq.mean_mV;
-        S.VQ_source = char(o.VQ);
+        S.VQ_source  = vqPath;
+        S.VQ_nRuns   = Sq.nRuns;
+        S.VQ_std_mV  = Sq.std_mV;
     end
 
     % ---------- หาค่า Sensitivity ----------
