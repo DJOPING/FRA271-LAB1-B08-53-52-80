@@ -1,0 +1,104 @@
+% =======================================================
+% โค้ดวิเคราะห์ Phase Shift (Phase A & B) - โหมดเจาะลึก 3 รอบ
+% =======================================================
+% วิธีเตรียมข้อมูล (พิมพ์ใน Command Window หลังรันเสร็จแต่ละรอบ):
+% รอบ 1: r1_A = out.A0;  r1_B = out.A1;
+% รอบ 2: r2_A = out.A0;  r2_B = out.A1;
+% รอบ 3: r3_A = out.A0;  r3_B = out.A1;
+% =======================================================
+
+% ดึงข้อมูลเวลาและสัญญาณ
+t1 = r1_A.Time; A1 = r1_A.Data; B1 = r1_B.Data;
+t2 = r2_A.Time; A2 = r2_A.Data; B2 = r2_B.Data;
+t3 = r3_A.Time; A3 = r3_A.Data; B3 = r3_B.Data;
+
+% ปัดเศษให้เป็นสัญญาณ Digital (0 หรือ 1)
+digA1 = A1 > (max(A1)+min(A1))/2; digB1 = B1 > (max(B1)+min(B1))/2;
+digA2 = A2 > (max(A2)+min(A2))/2; digB2 = B2 > (max(B2)+min(B2))/2;
+digA3 = A3 > (max(A3)+min(A3))/2; digB3 = B3 > (max(B3)+min(B3))/2;
+
+% หาตำแหน่งขอบขาขึ้น (Rising Edge) ของ Phase A
+edge1 = find(diff(digA1) == 1); 
+edge2 = find(diff(digA2) == 1); 
+edge3 = find(diff(digA3) == 1); 
+
+% =======================================================
+% คำนวณสรุปทิศทาง (ใช้เทคนิคข้าม 10 ลูกคลื่นแรก แก้บั๊กมือกระตุก)
+% =======================================================
+dir1 = 'N/A'; freq1 = 0; xlim1 = [0 1]; xlines1 = [];
+if length(edge1) > 15
+    check_idx = 10:15; % ข้ามไปเล็งลูกที่ 10 
+    if mode(digB1(edge1(check_idx))) == 0, dir1 = 'CW (Phase A นำ)'; else, dir1 = 'CCW (Phase B นำ)'; end
+    freq1 = 1 / mean(diff(t1(edge1)));
+    xlim1 = [t1(edge1(10))-0.02, t1(edge1(15))+0.02]; % ขอบเขตซูม
+    xlines1 = edge1(10:14); % ตำแหน่งตีเส้นประ
+end
+
+dir2 = 'N/A'; freq2 = 0; xlim2 = [0 1]; xlines2 = [];
+if length(edge2) > 15
+    check_idx = 10:15; 
+    if mode(digB2(edge2(check_idx))) == 0, dir2 = 'CW (Phase A นำ)'; else, dir2 = 'CCW (Phase B นำ)'; end
+    freq2 = 1 / mean(diff(t2(edge2)));
+    xlim2 = [t2(edge2(10))-0.02, t2(edge2(15))+0.02];
+    xlines2 = edge2(10:14);
+end
+
+dir3 = 'N/A'; freq3 = 0; xlim3 = [0 1]; xlines3 = [];
+if length(edge3) > 15
+    check_idx = 10:15; 
+    if mode(digB3(edge3(check_idx))) == 0, dir3 = 'CW (Phase A นำ)'; else, dir3 = 'CCW (Phase B นำ)'; end
+    freq3 = 1 / mean(diff(t3(edge3)));
+    xlim3 = [t3(edge3(10))-0.02, t3(edge3(15))+0.02];
+    xlines3 = edge3(10:14);
+end
+
+% =======================================================
+% สร้างกราฟ (ซูมอัตโนมัติ + ตีเส้นประตรงขาขึ้น Phase A)
+% =======================================================
+figure('Name', 'Phase Shift (Auto-Zoomed)', 'NumberTitle', 'off', 'Position', [150, 150, 800, 600]);
+
+% พลอตภาพรอบที่ 1
+subplot(3, 1, 1);
+plot(t1, digA1 + 1.5, 'b', 'LineWidth', 2); hold on;
+plot(t1, digB1, 'r', 'LineWidth', 2);
+for i = 1:length(xlines1), xline(t1(xlines1(i)), '--k', 'LineWidth', 1); end % ตีเส้นประ
+if length(edge1) > 15, xlim(xlim1); end
+ylim([-0.5 3.5]); yticks([0 1 1.5 2.5]); yticklabels({'B:0', 'B:1', 'A:0', 'A:1'});
+title(sprintf('Run 1: Phase A & B Relationship [%s]', dir1)); grid on; hold off;
+
+% พลอตภาพรอบที่ 2
+subplot(3, 1, 2);
+plot(t2, digA2 + 1.5, 'b', 'LineWidth', 2); hold on;
+plot(t2, digB2, 'r', 'LineWidth', 2);
+for i = 1:length(xlines2), xline(t2(xlines2(i)), '--k', 'LineWidth', 1); end
+if length(edge2) > 15, xlim(xlim2); end
+ylim([-0.5 3.5]); yticks([0 1 1.5 2.5]); yticklabels({'B:0', 'B:1', 'A:0', 'A:1'});
+title(sprintf('Run 2: Phase A & B Relationship [%s]', dir2)); grid on; hold off;
+
+% พลอตภาพรอบที่ 3
+subplot(3, 1, 3);
+plot(t3, digA3 + 1.5, 'b', 'LineWidth', 2); hold on;
+plot(t3, digB3, 'r', 'LineWidth', 2);
+for i = 1:length(xlines3), xline(t3(xlines3(i)), '--k', 'LineWidth', 1); end
+if length(edge3) > 15, xlim(xlim3); end
+ylim([-0.5 3.5]); yticks([0 1 1.5 2.5]); yticklabels({'B:0', 'B:1', 'A:0', 'A:1'});
+title(sprintf('Run 3: Phase A & B Relationship [%s]', dir3)); 
+xlabel('Time (seconds)'); grid on; hold off;
+
+% =======================================================
+% แสดงผล Command Window
+% =======================================================
+disp('===============================================');
+disp('ผลการทดสอบ Phase Shift (ทิศทาง และ ความเร็ว)');
+disp('===============================================');
+fprintf('รอบที่ 1 หมุนทิศ: %-20s | ความเร็ว: %.2f Hz\n', dir1, freq1);
+fprintf('รอบที่ 2 หมุนทิศ: %-20s | ความเร็ว: %.2f Hz\n', dir2, freq2);
+fprintf('รอบที่ 3 หมุนทิศ: %-20s | ความเร็ว: %.2f Hz\n', dir3, freq3);
+disp('===============================================');
+% ===============================================
+% ผลการทดสอบ Phase Shift (ทิศทาง และ ความเร็ว)
+% ===============================================
+% รอบที่ 1 หมุนทิศ: CW (Phase A นำ)      | ความเร็ว: 155.56 Hz
+% รอบที่ 2 หมุนทิศ: CW (Phase A นำ)      | ความเร็ว: 131.08 Hz
+% รอบที่ 3 หมุนทิศ: CW (Phase A นำ)      | ความเร็ว: 158.25 Hz
+% ===============================================
